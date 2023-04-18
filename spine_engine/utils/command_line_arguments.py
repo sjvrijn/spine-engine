@@ -31,7 +31,7 @@ def split_cmdline_args(arg_string):
     Returns:
         list: a list of tokens
     """
-    tokens = list()
+    tokens = []
     current_word = ""
     quoted_context = False
     for character in arg_string:

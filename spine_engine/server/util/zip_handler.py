@@ -59,11 +59,10 @@ class ZipHandler:
             raise ValueError(f"'{zip_file}' possibly corrupted. File size too small [{get_file_size(file_size)}]")
         with ZipFile(zip_file, "r") as zip_obj:
             try:
-                first_bad_file = zip_obj.testzip()  # Test ZIP file integrity before extraction (debugging)
-                if not first_bad_file:
-                    zip_obj.extractall(output_folder)
-                else:
+                if first_bad_file := zip_obj.testzip():
                     print(f"'{zip_file}' integrity test failure. First bad file: {first_bad_file}")
+                else:
+                    zip_obj.extractall(output_folder)
             except Exception as e:
                 raise e
 

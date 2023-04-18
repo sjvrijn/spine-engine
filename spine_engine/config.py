@@ -24,9 +24,7 @@ _on_windows = sys.platform == "win32"
 
 def _executable(name):
     """Appends a .exe extension to `name` on Windows platform."""
-    if _on_windows:
-        return name + ".exe"
-    return name
+    return f"{name}.exe" if _on_windows else name
 
 
 # GAMS

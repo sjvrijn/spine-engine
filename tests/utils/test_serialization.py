@@ -40,7 +40,7 @@ class TestSerialization(unittest.TestCase):
 
     def test_serialize_url_makes_file_path_in_project_dir_relative(self):
         with NamedTemporaryFile(mode="r") as temp_file:
-            url = "sqlite:///" + str(Path(temp_file.name).as_posix())
+            url = f"sqlite:///{str(Path(temp_file.name).as_posix())}"
             project_dir = gettempdir()
             expected_path = str(Path(temp_file.name).relative_to(project_dir).as_posix())
             serialized = serialize_url(url, project_dir)
@@ -53,9 +53,9 @@ class TestSerialization(unittest.TestCase):
             with NamedTemporaryFile(mode="r") as temp_file:
                 expected_path = str(Path(temp_file.name).as_posix())
                 if sys.platform == "win32":
-                    url = "sqlite:///" + expected_path
+                    url = f"sqlite:///{expected_path}"
                 else:
-                    url = "sqlite://" + expected_path
+                    url = f"sqlite://{expected_path}"
                 serialized = serialize_url(url, project_dir)
                 self.assertEqual(
                     serialized, {"type": "file_url", "relative": False, "path": expected_path, "scheme": "sqlite"}
@@ -69,7 +69,7 @@ class TestSerialization(unittest.TestCase):
 
     def test_serialize_relative_url_with_query(self):
         with NamedTemporaryFile(mode="r") as temp_file:
-            url = "sqlite:///" + str(Path(temp_file.name).as_posix()) + "?filter=kol"
+            url = f"sqlite:///{str(Path(temp_file.name).as_posix())}?filter=kol"
             project_dir = gettempdir()
             expected_path = str(Path(temp_file.name).relative_to(project_dir).as_posix())
             serialized = serialize_url(url, project_dir)

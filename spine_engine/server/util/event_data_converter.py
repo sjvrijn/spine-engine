@@ -40,8 +40,7 @@ class EventDataConverter:
             data = base64_b.decode("ascii")
         data = break_event_data(event_type, data)
         event_dict = {"event_type": event_type, "data": data}
-        json_event_data = json.dumps(event_dict)
-        return json_event_data
+        return json.dumps(event_dict)
 
     @staticmethod
     def deconvert(event_data, b64decoding=False):
@@ -64,8 +63,7 @@ class EventDataConverter:
             data = message_bytes.decode("ascii")
         else:
             data = event_dict["data"]
-        fixed_event = fix_event_data((event_dict["event_type"], data))
-        return fixed_event
+        return fix_event_data((event_dict["event_type"], data))
 
 
 def break_event_data(event_type, data):
@@ -131,11 +129,12 @@ def convert_execution_finish_state(state):
     Returns:
         ItemExecutionFinishState: Enum if given str is valid, None otherwise.
     """
-    states = dict()
-    states["SUCCESS"] = ItemExecutionFinishState.SUCCESS
-    states["FAILURE"] = ItemExecutionFinishState.FAILURE
-    states["SKIPPED"] = ItemExecutionFinishState.SKIPPED
-    states["EXCLUDED"] = ItemExecutionFinishState.EXCLUDED
-    states["STOPPED"] = ItemExecutionFinishState.STOPPED
-    states["NEVER_FINISHED"] = ItemExecutionFinishState.NEVER_FINISHED
+    states = {
+        "SUCCESS": ItemExecutionFinishState.SUCCESS,
+        "FAILURE": ItemExecutionFinishState.FAILURE,
+        "SKIPPED": ItemExecutionFinishState.SKIPPED,
+        "EXCLUDED": ItemExecutionFinishState.EXCLUDED,
+        "STOPPED": ItemExecutionFinishState.STOPPED,
+        "NEVER_FINISHED": ItemExecutionFinishState.NEVER_FINISHED,
+    }
     return states.get(state, None)

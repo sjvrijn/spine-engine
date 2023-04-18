@@ -54,7 +54,9 @@ class ProjectRetrieverService(threading.Thread, ServiceBase):
             print(msg)
             self.send_completed_with_error(msg)
             return
-        zip_fpath = os.path.abspath(os.path.join(self.project_dir, os.pardir, zip_fname + ".zip"))
+        zip_fpath = os.path.abspath(
+            os.path.join(self.project_dir, os.pardir, f"{zip_fname}.zip")
+        )
         if not os.path.isfile(zip_fpath):
             msg = f"Zip file {zip_fpath} does not exist"
             print(msg)

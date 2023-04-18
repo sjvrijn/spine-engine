@@ -38,24 +38,24 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(restored.options, {"option": 23})
 
     def test_ready_to_execute_returns_false_when_required_filters_do_not_exist(self):
-        options = {"require_" + SCENARIO_FILTER_TYPE: True}
+        options = {f"require_{SCENARIO_FILTER_TYPE}": True}
         connection = Connection("source", "bottom", "destination", "top", options)
         self.assertFalse(connection.ready_to_execute())
 
     def test_ready_to_execute_returns_false_when_required_filters_are_offline(self):
-        options = {"require_" + SCENARIO_FILTER_TYPE: True}
+        options = {f"require_{SCENARIO_FILTER_TYPE}": True}
         filter_settings = FilterSettings({"database@Data Store": {SCENARIO_FILTER_TYPE: {"scenario_1": False}}})
         connection = Connection("source", "bottom", "destination", "top", options, filter_settings)
         self.assertFalse(connection.ready_to_execute())
 
     def test_ready_to_execute_returns_true_when_required_filters_are_online(self):
-        options = {"require_" + SCENARIO_FILTER_TYPE: True}
+        options = {f"require_{SCENARIO_FILTER_TYPE}": True}
         filter_settings = FilterSettings({"database@Data Store": {SCENARIO_FILTER_TYPE: {"scenario_1": True}}})
         connection = Connection("source", "bottom", "destination", "top", options, filter_settings)
         self.assertTrue(connection.ready_to_execute())
 
     def test_require_filter_online(self):
-        options = {"require_" + SCENARIO_FILTER_TYPE: True}
+        options = {f"require_{SCENARIO_FILTER_TYPE}": True}
         filter_settings = FilterSettings({"database@Data Store": {SCENARIO_FILTER_TYPE: {"scenario_1": True}}})
         connection = Connection("source", "bottom", "destination", "top", options, filter_settings)
         self.assertTrue(connection.require_filter_online(SCENARIO_FILTER_TYPE))
@@ -70,7 +70,10 @@ class TestConnection(unittest.TestCase):
         self.assertFalse(connection.require_filter_online(TOOL_FILTER_TYPE))
 
     def test_notification_when_filter_validation_fails(self):
-        options = {"require_" + SCENARIO_FILTER_TYPE: True, "require_" + TOOL_FILTER_TYPE: True}
+        options = {
+            f"require_{SCENARIO_FILTER_TYPE}": True,
+            f"require_{TOOL_FILTER_TYPE}": True,
+        }
         filter_settings = FilterSettings(auto_online=False)
         connection = Connection("source", "bottom", "destination", "top", options, filter_settings)
         self.assertEqual(
@@ -82,7 +85,10 @@ class TestConnection(unittest.TestCase):
         filter_settings = FilterSettings(
             {"database@Data Store": {SCENARIO_FILTER_TYPE: {"scenario_1": True}, TOOL_FILTER_TYPE: {"tool_1": True}}}
         )
-        options = {"require_" + SCENARIO_FILTER_TYPE: True, "require_" + TOOL_FILTER_TYPE: True}
+        options = {
+            f"require_{SCENARIO_FILTER_TYPE}": True,
+            f"require_{TOOL_FILTER_TYPE}": True,
+        }
         connection = Connection("source", "bottom", "destination", "top", options, filter_settings)
         self.assertEqual(connection.notifications(), [])
 

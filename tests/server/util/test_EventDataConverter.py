@@ -23,9 +23,12 @@ from spine_engine.server.util.event_data_converter import EventDataConverter
 
 class TestEventDataConverter(unittest.TestCase):
     def make_event_data(self):
-        test_events = [
+        return [
             ('exec_started', {'item_name': 'helloworld', 'direction': 'BACKWARD'}),
-            ('exec_started', {'item_name': 'Data Connection 1', 'direction': 'BACKWARD'}),
+            (
+                'exec_started',
+                {'item_name': 'Data Connection 1', 'direction': 'BACKWARD'},
+            ),
             (
                 'exec_finished',
                 {
@@ -44,7 +47,10 @@ class TestEventDataConverter(unittest.TestCase):
                     'item_state': ItemExecutionFinishState.SUCCESS,
                 },
             ),
-            ('exec_started', {'item_name': 'Data Connection 1', 'direction': 'FORWARD'}),
+            (
+                'exec_started',
+                {'item_name': 'Data Connection 1', 'direction': 'FORWARD'},
+            ),
             (
                 'event_msg',
                 {
@@ -86,11 +92,21 @@ class TestEventDataConverter(unittest.TestCase):
             ),
             (
                 'persistent_execution_msg',
-                {'item_name': 'helloworld', 'filter_id': '', 'type': 'stdin', 'data': '# Running python helloworld.py'},
+                {
+                    'item_name': 'helloworld',
+                    'filter_id': '',
+                    'type': 'stdin',
+                    'data': '# Running python helloworld.py',
+                },
             ),
             (
                 'persistent_execution_msg',
-                {'item_name': 'helloworld', 'filter_id': '', 'type': 'stdout', 'data': 'helloo'},
+                {
+                    'item_name': 'helloworld',
+                    'filter_id': '',
+                    'type': 'stdout',
+                    'data': 'helloo',
+                },
             ),
             (
                 'event_msg',
@@ -112,11 +128,10 @@ class TestEventDataConverter(unittest.TestCase):
             ),
             ('dag_exec_finished', 'COMPLETED'),
         ]
-        return test_events
 
     def test_convert(self):
         event_data = self.make_event_data()
-        converted_events = list()
+        converted_events = []
         for event in event_data:
             json_str = EventDataConverter.convert(event[0], event[1])
             converted_events.append(json_str)
@@ -133,12 +148,12 @@ class TestEventDataConverter(unittest.TestCase):
         """Converts events, then deconverts them back."""
         event_data = self.make_event_data()
         expected_data = deepcopy(event_data)
-        converted_events = list()
+        converted_events = []
         for event in event_data:
             json_str = EventDataConverter.convert(event[0], event[1])
             converted_events.append(json_str)
         self.assertEqual(16, len(converted_events))
-        deconverted_events = list()
+        deconverted_events = []
         for conv_event in converted_events:
             event_tuple = EventDataConverter.deconvert(conv_event.encode("utf-8"))
             deconverted_events.append(event_tuple)

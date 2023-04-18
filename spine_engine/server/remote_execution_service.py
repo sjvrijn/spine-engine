@@ -42,10 +42,10 @@ class RemoteExecutionService(threading.Thread, ServiceBase):
         self.engine = None
         self.push_socket = self.context.socket(zmq.PUSH)  # Transmits events and files directly to client
         self.local_project_dir = project_dir
-        self.persistent_keys = dict()  # Mapping of item_name to a persistent execution manager key
-        self.persistent_exec_mngrs = dict()  # Mapping of per. execution manager key to per. execution manager
+        self.persistent_keys = {}
+        self.persistent_exec_mngrs = {}
         self.persist_q = persistent_exec_mngr_q
-        self.items = list()
+        self.items = []
 
     def collect_persistent_keys(self, event_type, data):
         """Collects the keys used in identifying persistent execution managers
@@ -77,10 +77,10 @@ class RemoteExecutionService(threading.Thread, ServiceBase):
 
     def collect_resources(self):
         """Returns a dictionary containing items name, type and ProjectItemResources."""
-        resources = dict()
-        for item in self.items:
-            resources[item.name] = [item.item_type(), item._output_resources_forward()]
-        return resources
+        return {
+            item.name: [item.item_type(), item._output_resources_forward()]
+            for item in self.items
+        }
 
     def run(self):
         """Sends an execution started response to start execution request. Runs Spine Engine
@@ -104,7 +104,7 @@ class RemoteExecutionService(threading.Thread, ServiceBase):
                 self.collect_running_items(self.engine._running_items)
                 json_event = EventDataConverter.convert(event_type, data)
                 self.push_socket.send_multipart([json_event.encode("utf-8")])  # Blocks until the client pulls
-                if data == "COMPLETED" or data == "FAILED" or data == "USER_STOPPED":
+                if data in ["COMPLETED", "FAILED", "USER_STOPPED"]:
                     break
         except StopIteration:
             # Raised by SpineEngine._get_event_stream() generator if we try to get_event() after
@@ -184,8 +184,7 @@ class RemoteExecutionService(threading.Thread, ServiceBase):
         specs_keys = input_data["specifications"].keys()
         for specs_key in specs_keys:
             spec_item = input_data["specifications"][specs_key]
-            i = 0
-            for specItemInfo in spec_item:
+            for i, specItemInfo in enumerate(spec_item):
                 # Adjust definition_file_path in specs to point to the server folder
                 if "definition_file_path" in specItemInfo:
                     original_def_file_path = specItemInfo["definition_file_path"]  # Absolute path on client machine
@@ -194,10 +193,9 @@ class RemoteExecutionService(threading.Thread, ServiceBase):
                     # Remove part of definition file path that references client machine path to get
                     # a relative definition file path. Note: os.path.relpath() does not work because the output
                     # depends on OS. Note2: '/' must be added to remote folder here.
-                    rel_def_file_path = original_def_file_path.replace(remote_folder + "/", "")
+                    rel_def_file_path = original_def_file_path.replace(f"{remote_folder}/", "")
                     modified = os.path.join(local_project_dir, rel_def_file_path)  # Absolute path on server machine
                     input_data["specifications"][specs_key][i]["definition_file_path"] = modified
-                i += 1
                 # Modify Python executable path and kernel spec because those refer to paths on client's machine
                 if "execution_settings" in specItemInfo and specItemInfo["tooltype"] == "python":
                     if specItemInfo["execution_settings"]["use_jupyter_console"]:

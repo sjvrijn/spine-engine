@@ -166,9 +166,7 @@ class PersistentManagerBase:
             result = self._communicate("is_complete", cmd)
         except PersistentIsDead:
             return None
-        if result.strip() != "true":
-            return None
-        return cmd
+        return None if result.strip() != "true" else cmd
 
     def drain_queue(self):
         """Empties the message queue.
@@ -250,7 +248,7 @@ class PersistentManagerBase:
         try:
             self._persistent.stdin.flush()
             return True
-        except (BrokenPipeError, OSError):
+        except OSError:
             return False
 
     def _wait(self):
@@ -361,9 +359,7 @@ class PersistentManagerBase:
             result = self._communicate("completions", text)
         except PersistentIsDead:
             return []
-        if result is None:
-            return []
-        return result.strip().split(" ")
+        return [] if result is None else result.strip().split(" ")
 
     def get_history_item(self, text, prefix, backwards):
         """Returns the history item given by index.
@@ -517,12 +513,12 @@ class PythonPersistentManager(PersistentManagerBase):
         cmd_lines = cmd.splitlines()
         indent = "\t" if any(l.startswith("\t") for l in cmd_lines) else "  "
         lines = ["try:"]
-        lines += [indent + "spine_repl.set_exception(False)"]
+        lines += [f"{indent}spine_repl.set_exception(False)"]
         for l in cmd_lines:
             lines += [indent + l]
         lines += ["except:"]
-        lines += [indent + "spine_repl.set_exception(True)"]
-        lines += [indent + "raise"]
+        lines += [f"{indent}spine_repl.set_exception(True)"]
+        lines += [f"{indent}raise"]
         return os.linesep.join(lines) + os.linesep
 
     @staticmethod
@@ -653,8 +649,7 @@ class _PersistentManagerFactory(metaclass=Singleton):
         pm = self.persistent_managers.get(key)
         if pm is None:
             return ()
-        for msg in pm.issue_command(cmd, add_history=True, catch_exception=False):
-            yield msg
+        yield from pm.issue_command(cmd, add_history=True, catch_exception=False)
 
     def is_persistent_command_complete(self, key, cmd):
         """Checks whether a command is complete.
@@ -667,9 +662,7 @@ class _PersistentManagerFactory(metaclass=Singleton):
             bool
         """
         pm = self.persistent_managers.get(key)
-        if pm is None:
-            return False
-        return pm.make_complete_command(cmd) is not None
+        return False if pm is None else pm.make_complete_command(cmd) is not None
 
     def get_persistent_completions(self, key, text):
         """Returns a list of completion options.
@@ -823,7 +816,7 @@ class PersistentExecutionManagerBase(ExecutionManagerBase):
         try:
             msg = dict(type="execution_started", args=" ".join(self._args))
             self._logger.msg_persistent_execution.emit(msg)
-            fmt_alias = "# Running " + self._alias.rstrip()
+            fmt_alias = f"# Running {self._alias.rstrip()}"
             self._logger.msg_persistent_execution.emit(dict(type="stdin", data=fmt_alias))
             for cmd in self._commands:
                 for msg in self._persistent_manager.issue_command(cmd):

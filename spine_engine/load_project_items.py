@@ -32,7 +32,7 @@ def load_item_specification_factories(items_package_name):
     """
     items = importlib.import_module(items_package_name)
     items_root = pathlib.Path(items.__file__).parent
-    factories = dict()
+    factories = {}
     for child in items_root.iterdir():
         if child.is_dir() and (
             child.joinpath("specification_factory.py").exists()
@@ -60,7 +60,7 @@ def load_executable_item_classes(items_package_name):
     """
     items = importlib.import_module(items_package_name)
     items_root = pathlib.Path(items.__file__).parent
-    classes = dict()
+    classes = {}
     for child in items_root.iterdir():
         if (
             child.is_dir()

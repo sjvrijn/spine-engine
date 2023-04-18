@@ -107,7 +107,7 @@ class MultithreadExecutor(Executor):
                     # start iterators
                     while len(active_iters) < limit:
                         candidate_steps = active_execution.get_steps_to_execute(limit=(limit - len(active_iters)))
-                        steps_by_key.update({step.key: step for step in candidate_steps})
+                        steps_by_key |= {step.key: step for step in candidate_steps}
                         # Add all waiting steps
                         candidate_steps += list(waiting.values())
                         # Add iterating steps that don't depend on other pending iterating
@@ -164,9 +164,7 @@ class MultithreadExecutor(Executor):
                                 active_execution.handle_event(event_or_none)
                             except check.CheckError:
                                 # Bypass check errors on iterating steps
-                                if key in iterating_active:
-                                    pass
-                                else:
+                                if key not in iterating_active:
                                     raise
                             # Handle loops
                             if event_or_none.is_step_failure:
@@ -233,11 +231,8 @@ class MultithreadExecutor(Executor):
                         active_execution.verify_complete(pipeline_context, key)
 
                     # process skipped and abandoned steps
-                    for event in active_execution.plan_events_iterator(pipeline_context):
-                        yield event
-
-                errs = {tid: err for tid, err in errors.items() if err}
-                if errs:
+                    yield from active_execution.plan_events_iterator(pipeline_context)
+                if errs := {tid: err for tid, err in errors.items() if err}:
                     raise DagsterThreadError(
                         "During multithread execution errors occurred in threads:\n{error_list}".format(
                             error_list="\n".join(
@@ -280,7 +275,7 @@ class MultithreadExecutor(Executor):
                 if isinstance(ret, ThreadSystemErrorEvent):
                     errors[ret.tid] = ret.error_info
             else:
-                check.failed("Unexpected return value from thread {}".format(type(ret)))
+                check.failed(f"Unexpected return value from thread {type(ret)}")
 
     def _save_resources(self, command, solid_name):
         for output_handle, outputs in command.output_capture.items():

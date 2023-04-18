@@ -104,10 +104,11 @@ class Request:
             data (bytes): User data to be sent
             internal_msg (str): Internal server message as JSON string
         """
-        if not internal_msg:
-            frame = [connection_id, b"", data]
-        else:
-            frame = [connection_id, b"", data, internal_msg.encode("utf-8")]
+        frame = (
+            [connection_id, b"", data, internal_msg.encode("utf-8")]
+            if internal_msg
+            else [connection_id, b"", data]
+        )
         socket.send_multipart(frame)
 
     @staticmethod

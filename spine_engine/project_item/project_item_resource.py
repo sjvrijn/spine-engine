@@ -62,7 +62,7 @@ class ProjectItemResource:
         self.label = label
         self._url = url
         self._parsed_url = urlparse(self._url)
-        self.metadata = metadata if metadata is not None else dict()
+        self.metadata = metadata if metadata is not None else {}
         self._filterable = filterable
         self._identifier = identifier if identifier is not None else uuid.uuid4().hex
 
@@ -127,15 +127,16 @@ class ProjectItemResource:
         )
 
     def __eq__(self, other):
-        if not isinstance(other, ProjectItemResource):
-            # don't attempt to compare against unrelated types
-            return NotImplemented
         return (
-            self.provider_name == other.provider_name
-            and self.type_ == other.type_
-            and self._url == other._url
-            and self.metadata == other.metadata
-            and self._filterable == other._filterable
+            (
+                self.provider_name == other.provider_name
+                and self.type_ == other.type_
+                and self._url == other._url
+                and self.metadata == other.metadata
+                and self._filterable == other._filterable
+            )
+            if isinstance(other, ProjectItemResource)
+            else NotImplemented
         )
 
     def __hash__(self):
@@ -172,9 +173,12 @@ class ProjectItemResource:
 
     @property
     def hasfilepath(self):
-        if not self._url:
-            return False
-        return self.type_ in ("file", "file_pack") or (self.type_ == "database" and self.scheme == "sqlite")
+        return (
+            self.type_ in ("file", "file_pack")
+            or (self.type_ == "database" and self.scheme == "sqlite")
+            if self._url
+            else False
+        )
 
     @property
     def arg(self):
@@ -197,9 +201,11 @@ class CmdLineArg:
         self.missing = False
 
     def __eq__(self, other):
-        if not isinstance(other, CmdLineArg):
-            return NotImplemented
-        return self.arg == other.arg
+        return (
+            self.arg == other.arg
+            if isinstance(other, CmdLineArg)
+            else NotImplemented
+        )
 
     def __str__(self):
         return self.arg
@@ -272,10 +278,7 @@ def transient_file_resource(provider_name, label, file_path=None):
         label (str): resource label
         file_path (str, optional): file path if the file exists
     """
-    if file_path is not None:
-        url = Path(file_path).resolve().as_uri()
-    else:
-        url = None
+    url = Path(file_path).resolve().as_uri() if file_path is not None else None
     return ProjectItemResource(provider_name, "file", label, url)
 
 
@@ -288,10 +291,7 @@ def file_resource_in_pack(provider_name, label, file_path=None):
         label (str): resource label
         file_path (str, optional): file path if the file exists
     """
-    if file_path is not None:
-        url = Path(file_path).resolve().as_uri()
-    else:
-        url = None
+    url = Path(file_path).resolve().as_uri() if file_path is not None else None
     return ProjectItemResource(provider_name, "file_pack", label, url)
 
 
@@ -304,13 +304,13 @@ def extract_packs(resources):
     Returns:
         tuple: list of non-pack resources and dictionary of packs keyed by label
     """
-    singles = list()
-    packs = dict()
+    singles = []
+    packs = {}
     for resource in resources:
         if resource.type_ != "file_pack":
             singles.append(resource)
         else:
-            packs.setdefault(resource.label, list()).append(resource)
+            packs.setdefault(resource.label, []).append(resource)
     return singles, packs
 
 
@@ -368,10 +368,15 @@ def labelled_resource_args(resources, stack, db_checkin=False, db_checkout=False
     Yields:
         dict: mapping from resource label to a list of resource args.
     """
-    result = {}
     single_resources, pack_resources = extract_packs(resources)
-    for resource in single_resources:
-        result[resource.label] = [stack.enter_context(resource.open(db_checkin=db_checkin, db_checkout=db_checkout))]
+    result = {
+        resource.label: [
+            stack.enter_context(
+                resource.open(db_checkin=db_checkin, db_checkout=db_checkout)
+            )
+        ]
+        for resource in single_resources
+    }
     for label, resources_ in pack_resources.items():
         result[label] = [
             stack.enter_context(r.open(db_checkin=db_checkin, db_checkout=db_checkout)) for r in resources_
@@ -390,7 +395,7 @@ def expand_cmd_line_args(args, label_to_arg, logger):
     Returns:
         list of str: command line arguments as strings
     """
-    expanded_args = list()
+    expanded_args = []
     for arg in args:
         if not isinstance(arg, LabelArg):
             expanded_args.append(str(arg))

@@ -77,7 +77,7 @@ class EngineServer(threading.Thread):
         self._context = zmq.Context()
         self.ctrl_msg_sender = self._context.socket(zmq.PAIR)
         self.ctrl_msg_sender.bind("inproc://ctrl_msg")  # inproc:// transport requires a bind() before connect()
-        self.persistent_exec_mngrs = dict()
+        self.persistent_exec_mngrs = {}
         self.start()  # Start serving
 
     def close(self):
@@ -106,15 +106,15 @@ class EngineServer(threading.Thread):
                     self.auth = self.enable_stonehouse_security(frontend)
                 except ValueError:
                     raise
-            frontend.bind(self.protocol + "://*:" + str(self.port))
+            frontend.bind(f"{self.protocol}://*:{str(self.port)}")
             poller = zmq.Poller()
             poller.register(frontend, zmq.POLLIN)
             poller.register(backend, zmq.POLLIN)
             poller.register(ctrl_msg_listener, zmq.POLLIN)
         except Exception as e:
             raise ValueError(f"Initializing serve() failed due to exception: {e}")
-        workers = dict()
-        project_dirs = dict()  # Mapping of job Id to an abs. path to a project directory ready for execution
+        workers = {}
+        project_dirs = {}
         persistent_exec_mngr_q = queue.Queue()
         while True:
             try:
@@ -227,7 +227,7 @@ class EngineServer(threading.Thread):
                 if socks.get(ctrl_msg_listener) == zmq.POLLIN:
                     print("Closing server...")
                     self.kill_persistent_exec_mngrs()
-                    if len(workers) > 0:
+                    if workers:
                         print(f"WARNING: Some workers still running:{workers.keys()}")
                     break
             except Exception as e:
@@ -286,8 +286,7 @@ class EngineServer(threading.Thread):
         files = server_msg["files"]  # Dictionary. TODO: Should this be a list?
         files_list = []
         if len(files) > 0:
-            for f in files:
-                files_list.append(files[f])
+            files_list.extend(files[f] for f in files)
         return Request(msg, server_msg["command"], server_msg["id"], data_str, files_list)
 
     @staticmethod
@@ -327,7 +326,7 @@ class EngineServer(threading.Thread):
         if not endpoints:
             raise ValueError("No endpoints configured. Please add allowed IP's into allowEndPoints.txt")
         # Allow configured endpoints
-        allowed = list()
+        allowed = []
         for ep in endpoints:
             try:
                 ep = ep.strip()
@@ -359,5 +358,4 @@ class EngineServer(threading.Thread):
         """
         with open(config_file_location, "r") as f:
             all_lines = f.read().splitlines()
-            lines = [x for x in all_lines if x]
-            return lines
+            return [x for x in all_lines if x]

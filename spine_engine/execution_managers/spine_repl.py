@@ -51,9 +51,15 @@ class _RequestHandler(socketserver.BaseRequestHandler):
 
 
 def completions(text):
-    if not readline:
-        return ""
-    return " ".join(itertools.takewhile(bool, (readline.get_completer()(text, k) for k in range(100))))
+    return (
+        " ".join(
+            itertools.takewhile(
+                bool, (readline.get_completer()(text, k) for k in range(100))
+            )
+        )
+        if readline
+        else ""
+    )
 
 
 def add_history(line):

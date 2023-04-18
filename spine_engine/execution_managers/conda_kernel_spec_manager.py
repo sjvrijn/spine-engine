@@ -57,9 +57,12 @@ class CondaKernelSpecManager(KernelSpecManager):
     def _validate_kernelspec_path(self, proposal):
         new_value = proposal["value"]
         if new_value is not None:
-            if new_value not in ("", "--user", "--sys-prefix"):
-                if not os.path.isdir(self.kernelspec_path):
-                    raise TraitError("CondaKernelSpecManager.kernelspec_path is not a directory.")
+            if new_value not in (
+                "",
+                "--user",
+                "--sys-prefix",
+            ) and not os.path.isdir(self.kernelspec_path):
+                raise TraitError("CondaKernelSpecManager.kernelspec_path is not a directory.")
             self.log.debug("[nb_conda_kernels] Force conda_only=True as kernelspec_path is not None.")
             self.conda_only = True
 
@@ -168,9 +171,10 @@ class CondaKernelSpecManager(KernelSpecManager):
             envs_dirs = [join(base_prefix, 'envs')]
         all_envs = {}
         for env_path in envs:
-            if self.env_filter is not None:
-                if self._env_filter_regex.search(env_path):
-                    continue
+            if self.env_filter is not None and self._env_filter_regex.search(
+                env_path
+            ):
+                continue
             if env_path == base_prefix:
                 env_name = 'root'
             elif env_path.startswith(build_prefix):
@@ -184,12 +188,12 @@ class CondaKernelSpecManager(KernelSpecManager):
                 # as created by, say, conda or anaconda-project. The name
                 # of the parent directory, then, provides useful context.
                 if basename(env_base) == 'envs' and (env_base != envs_prefix or env_name in all_envs):
-                    env_name = u'{}-{}'.format(basename(dirname(env_base)), env_name)
+                    env_name = f'{basename(dirname(env_base))}-{env_name}'
             # Further disambiguate, if necessary, with a counter.
             if env_name in all_envs:
                 base_name = env_name
                 for count in range(len(all_envs)):
-                    env_name = u'{}-{}'.format(base_name, count + 2)
+                    env_name = f'{base_name}-{count + 2}'
                     if env_name not in all_envs:
                         break
             all_envs[env_name] = env_path
@@ -236,7 +240,7 @@ class CondaKernelSpecManager(KernelSpecManager):
                 elif kernel_name == 'ir':
                     kernel_name = 'r'
                 kernel_prefix = '' if env_name == 'root' else 'env-'
-                kernel_name = u'conda-{}{}-{}'.format(kernel_prefix, env_name, kernel_name)
+                kernel_name = f'conda-{kernel_prefix}{env_name}-{kernel_name}'
                 # Replace invalid characters with dashes
                 kernel_name = self.clean_kernel_name(kernel_name)
 
@@ -276,7 +280,8 @@ class CondaKernelSpecManager(KernelSpecManager):
                             json.dump(tmp_spec, f)
                     except OSError as error:
                         self.log.warning(
-                            u"[nb_conda_kernels] Fail to install kernel '{}'.".format(kernel_dir), exc_info=error
+                            f"[nb_conda_kernels] Fail to install kernel '{kernel_dir}'.",
+                            exc_info=error,
                         )
 
                 # resource_dir is not part of the spec file, so it is added at the latest time
@@ -309,10 +314,7 @@ class CondaKernelSpecManager(KernelSpecManager):
         if expiry is not None and expiry >= time.time():
             return self._conda_kernels_cache
 
-        kspecs = {}
-        for name, info in self._all_specs().items():
-            kspecs[name] = KernelSpec(**info)
-
+        kspecs = {name: KernelSpec(**info) for name, info in self._all_specs().items()}
         self._conda_kernels_cache_expiry = time.time() + CACHE_TIMEOUT
         self._conda_kernels_cache = kspecs
 

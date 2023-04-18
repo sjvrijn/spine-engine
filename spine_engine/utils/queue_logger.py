@@ -113,8 +113,8 @@ class QueueLogger:
 
     def __init__(self, queue, item_name, prompt_queue, answered_prompts, silent=False):
         self._silent = silent
-        message = _Message if not silent else SuppressedMessage
-        execution_message = _ExecutionMessage if not silent else SuppressedMessage
+        message = SuppressedMessage if silent else _Message
+        execution_message = SuppressedMessage if silent else _ExecutionMessage
         self.flash = _Flash(queue, item_name)
         self.msg = message(queue, "event_msg", "msg", item_name)
         self.msg_success = message(queue, "event_msg", "msg_success", item_name)

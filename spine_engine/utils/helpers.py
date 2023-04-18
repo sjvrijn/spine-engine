@@ -95,8 +95,7 @@ def create_log_file_timestamp():
         stamp = datetime.datetime.fromtimestamp(time.time())
     except OverflowError:
         return ""
-    extension = stamp.strftime("%Y%m%dT%H%M%S")
-    return extension
+    return stamp.strftime("%Y%m%dT%H%M%S")
 
 
 def create_timestamp():
@@ -108,10 +107,7 @@ def resolve_conda_executable(conda_path):
     executable from CONDA_EXE env variable if the app was started
     on Conda, otherwise returns an empty string.
     """
-    if conda_path != "":
-        return conda_path
-    conda_exe = os.environ.get("CONDA_EXE", "")
-    return conda_exe
+    return conda_path if conda_path != "" else os.environ.get("CONDA_EXE", "")
 
 
 def resolve_python_interpreter(python_path):
@@ -125,9 +121,7 @@ def resolve_python_interpreter(python_path):
         return sys.executable  # Use current Python
     # We are frozen
     path = resolve_executable_from_path(PYTHON_EXECUTABLE)
-    if path != "":
-        return path  # Use Python from PATH
-    return EMBEDDED_PYTHON  # Use embedded <app_install_dir>/Tools/python.exe
+    return path if path != "" else EMBEDDED_PYTHON
 
 
 def resolve_julia_executable(julia_path):
@@ -160,9 +154,7 @@ def resolve_gams_executable(gams_path):
     if gams_path != "":
         return gams_path
     gams_dir = find_gams_directory()
-    if gams_dir is None:
-        return ""
-    return os.path.join(gams_dir, GAMS_EXECUTABLE)
+    return "" if gams_dir is None else os.path.join(gams_dir, GAMS_EXECUTABLE)
 
 
 def resolve_executable_from_path(executable_name):
@@ -195,10 +187,10 @@ def inverted(input_):
     Returns:
         dict: keys are list items, and values are keys listing that item from the input dictionary
     """
-    output = dict()
+    output = {}
     for key, value_list in input_.items():
         for value in value_list:
-            output.setdefault(value, list()).append(key)
+            output.setdefault(value, []).append(key)
     return output
 
 
@@ -244,8 +236,8 @@ def get_julia_env(settings):
     julia = settings.value("appSettings/juliaPath", defaultValue="")
     if julia == "":
         julia = resolve_executable_from_path(JULIA_EXECUTABLE)
-        if julia == "":
-            return None
+    if julia == "":
+        return None
     project = settings.value("appSettings/juliaProjectPath", defaultValue="")
     return julia, project
 
@@ -338,13 +330,13 @@ def get_file_size(size_in_bytes):
     mb = 1024 * 1024
     gb = 1024 * 1024 * 1024
     if size_in_bytes <= kb:
-        return str(size_in_bytes) + " B"
+        return f"{str(size_in_bytes)} B"
     if kb < size_in_bytes <= mb:
-        return str(round(size_in_bytes / kb, 1)) + " KB"
+        return f"{str(round(size_in_bytes / kb, 1))} KB"
     elif mb < size_in_bytes < gb:
-        return str(round(size_in_bytes / mb, 1)) + " MB"
+        return f"{str(round(size_in_bytes / mb, 1))} MB"
     else:
-        return str(round(size_in_bytes / gb, 1)) + " GB"
+        return f"{str(round(size_in_bytes / gb, 1))} GB"
 
 
 class PartCount:

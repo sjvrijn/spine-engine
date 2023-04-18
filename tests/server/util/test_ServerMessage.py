@@ -22,7 +22,7 @@ from spine_engine.server.util.server_message import ServerMessage
 
 class TestServerMessage(unittest.TestCase):
     def make_engine_data1(self):
-        engine_data = {
+        return {
             'items': {
                 'T1': {
                     'type': 'Tool',
@@ -65,7 +65,13 @@ class TestServerMessage(unittest.TestCase):
                     }
                 ]
             },
-            'connections': [{'name': 'from DC1 to T1', 'from': ['DC1', 'right'], 'to': ['T1', 'left']}],
+            'connections': [
+                {
+                    'name': 'from DC1 to T1',
+                    'from': ['DC1', 'right'],
+                    'to': ['T1', 'left'],
+                }
+            ],
             'jumps': [],
             'execution_permits': {'T1': True, 'DC1': True},
             'items_module_name': 'spine_items',
@@ -78,10 +84,9 @@ class TestServerMessage(unittest.TestCase):
             },
             'project_dir': 'C:/Users/ttepsa/OneDrive - Teknologian Tutkimuskeskus VTT/Documents/SpineToolboxProjects/remote test 2 dags',
         }
-        return engine_data
 
     def make_engine_data2(self):
-        engine_data = {
+        return {
             'items': {
                 'Importer 1': {
                     'type': 'Importer',
@@ -105,7 +110,11 @@ class TestServerMessage(unittest.TestCase):
                         'password': '',
                         'host': '',
                         'port': '',
-                        'database': {'type': 'path', 'relative': True, 'path': '.spinetoolbox/items/ds1/DS1.sqlite'},
+                        'database': {
+                            'type': 'path',
+                            'relative': True,
+                            'path': '.spinetoolbox/items/ds1/DS1.sqlite',
+                        },
                     },
                 },
                 'pekka data': {
@@ -128,16 +137,24 @@ class TestServerMessage(unittest.TestCase):
                                 'Sheet1': [
                                     {
                                         'map_type': 'ObjectClass',
-                                        'name': {'map_type': 'column', 'reference': 0},
+                                        'name': {
+                                            'map_type': 'column',
+                                            'reference': 0,
+                                        },
                                         'parameters': {'map_type': 'None'},
                                         'skip_columns': [],
                                         'read_start_row': 0,
-                                        'objects': {'map_type': 'column', 'reference': 1},
+                                        'objects': {
+                                            'map_type': 'column',
+                                            'reference': 1,
+                                        },
                                     }
                                 ]
                             },
                             'table_options': {},
-                            'table_types': {'Sheet1': {'0': 'string', '1': 'string'}},
+                            'table_types': {
+                                'Sheet1': {'0': 'string', '1': 'string'}
+                            },
                             'table_row_types': {},
                             'selected_tables': ['Sheet1'],
                             'source_type': 'ExcelConnector',
@@ -153,10 +170,18 @@ class TestServerMessage(unittest.TestCase):
                     'from': ['pekka data', 'right'],
                     'to': ['Importer 1', 'left'],
                 },
-                {'name': 'from Importer 1 to DS1', 'from': ['Importer 1', 'right'], 'to': ['DS1', 'left']},
+                {
+                    'name': 'from Importer 1 to DS1',
+                    'from': ['Importer 1', 'right'],
+                    'to': ['DS1', 'left'],
+                },
             ],
             'jumps': [],
-            'execution_permits': {'Importer 1': True, 'DS1': True, 'pekka data': True},
+            'execution_permits': {
+                'Importer 1': True,
+                'DS1': True,
+                'pekka data': True,
+            },
             'items_module_name': 'spine_items',
             'settings': {
                 'engineSettings/remoteExecutionEnabled': 'true',
@@ -167,7 +192,6 @@ class TestServerMessage(unittest.TestCase):
             },
             'project_dir': 'C:/Users/ttepsa/OneDrive - Teknologian Tutkimuskeskus VTT/Documents/SpineToolboxProjects/Simple Importer',
         }
-        return engine_data
 
     def test_make_server_msg_and_parse1(self):
         """Engine data of DC -> Tool DAG"""

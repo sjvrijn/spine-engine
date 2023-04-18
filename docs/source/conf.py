@@ -25,7 +25,7 @@ from spine_engine.version import __version__ as version
 
 project = 'Spine Engine'
 author = 'Spine project consortium'
-copyright = '2017-2021 {}'.format(author)
+copyright = f'2017-2021 {author}'
 
 
 # The full version, including alpha/beta/rc tags

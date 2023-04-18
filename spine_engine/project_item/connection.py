@@ -58,13 +58,15 @@ class ConnectionBase:
         self._logger = None
 
     def __eq__(self, other):
-        if not isinstance(other, ConnectionBase):
-            return NotImplemented
         return (
-            self.source == other.source
-            and self._source_position == other._source_position
-            and self.destination == other.destination
-            and self._destination_position == other._destination_position
+            (
+                self.source == other.source
+                and self._source_position == other._source_position
+                and self.destination == other.destination
+                and self._destination_position == other._destination_position
+            )
+            if isinstance(other, ConnectionBase)
+            else NotImplemented
         )
 
     @property
@@ -160,7 +162,7 @@ class ConnectionBase:
         """
 
     def make_logger(self, queue):
-        self._logger = QueueLogger(queue, self.name, None, dict())
+        self._logger = QueueLogger(queue, self.name, None, {})
 
     def emit_flash(self):
         self._logger.flash.emit()
@@ -196,10 +198,10 @@ class FilterSettings:
         Returns:
             bool: True if any scenario filter is online, False otherwise
         """
-        for filters_by_type in self.known_filters.values():
-            if any(online for online in filters_by_type.get(filter_type, {}).values()):
-                return True
-        return False
+        return any(
+            any(filters_by_type.get(filter_type, {}).values())
+            for filters_by_type in self.known_filters.values()
+        )
 
     def to_dict(self):
         """Stores the settings to a dict.
@@ -237,14 +239,18 @@ class ResourceConvertingConnection(ConnectionBase):
         """
         super().__init__(source_name, source_position, destination_name, destination_position)
         self._filter_settings = filter_settings if filter_settings is not None else FilterSettings()
-        self.options = options if options is not None else dict()
+        self.options = options if options is not None else {}
         self._resources = set()
 
     def __eq__(self, other):
-        if not isinstance(other, ResourceConvertingConnection):
-            return NotImplemented
         return (
-            super().__eq__(other) and self._filter_settings == other._filter_settings and self.options == other.options
+            (
+                super().__eq__(other)
+                and self._filter_settings == other._filter_settings
+                and self.options == other.options
+            )
+            if isinstance(other, ResourceConvertingConnection)
+            else NotImplemented
         )
 
     @property
@@ -289,7 +295,7 @@ class ResourceConvertingConnection(ConnectionBase):
         Returns:
             bool: True if online filters are required, False otherwise
         """
-        return self.options.get("require_" + filter_type, False)
+        return self.options.get(f"require_{filter_type}", False)
 
     def notifications(self):
         """See base class."""
@@ -357,7 +363,9 @@ class ResourceConvertingConnection(ConnectionBase):
 
     def _apply_write_index(self, resources, sibling_connections):
         final_resources = []
-        precursors = set(c.name for c in sibling_connections if c.write_index < self.write_index)
+        precursors = {
+            c.name for c in sibling_connections if c.write_index < self.write_index
+        }
         for r in resources:
             if r.type_ == "database":
                 r = r.clone(
@@ -394,10 +402,11 @@ class ResourceConvertingConnection(ConnectionBase):
 
     def ready_to_execute(self):
         """See base class."""
-        for filter_type in (SCENARIO_FILTER_TYPE, TOOL_FILTER_TYPE):
-            if self.require_filter_online(filter_type) and not self._filter_settings.has_filter_online(filter_type):
-                return False
-        return True
+        return not any(
+            self.require_filter_online(filter_type)
+            and not self._filter_settings.has_filter_online(filter_type)
+            for filter_type in (SCENARIO_FILTER_TYPE, TOOL_FILTER_TYPE)
+        )
 
     def to_dict(self):
         """Returns a dictionary representation of this Connection.
@@ -486,11 +495,13 @@ class Connection(ResourceConvertingConnection):
                     SCENARIO_FILTER_TYPE, {}
                 )
                 available_scenarios = {row.name for row in db_map.query(db_map.scenario_sq)}
-                enabled_scenarios = set()
-                for name in available_scenarios:
-                    if scenario_filter_settings.get(name, self._filter_settings.auto_online):
-                        enabled_scenarios.add(name)
-                if enabled_scenarios:
+                if enabled_scenarios := {
+                    name
+                    for name in available_scenarios
+                    if scenario_filter_settings.get(
+                        name, self._filter_settings.auto_online
+                    )
+                }:
                     self._enabled_filter_names.setdefault(resource.label, {})[SCENARIO_FILTER_TYPE] = sorted(
                         list(enabled_scenarios)
                     )
@@ -498,11 +509,13 @@ class Connection(ResourceConvertingConnection):
                     TOOL_FILTER_TYPE, {}
                 )
                 available_tools = {row.name for row in db_map.query(db_map.tool_sq)}
-                enabled_tools = set()
-                for name in available_tools:
-                    if tool_filter_settings.get(name, self._filter_settings.auto_online):
-                        enabled_tools.add(name)
-                if enabled_tools:
+                if enabled_tools := {
+                    name
+                    for name in available_tools
+                    if tool_filter_settings.get(
+                        name, self._filter_settings.auto_online
+                    )
+                }:
                     self._enabled_filter_names.setdefault(resource.label, {})[TOOL_FILTER_TYPE] = sorted(enabled_tools)
             finally:
                 db_map.connection.close()

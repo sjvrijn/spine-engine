@@ -47,10 +47,7 @@ class ServerMessage:
         self._command = command
         self._id = req_id
         self._data = data
-        if not files:
-            self._files = list()
-        else:
-            self._files = files  # Name of the file where zip-file is saved to. Does not need to be the same as original
+        self._files = files if files else []
 
     def getCommand(self):
         return self._command
@@ -71,8 +68,7 @@ class ServerMessage:
             str: The instance as a JSON string
         """
         jsonFileNames = self._getJSONFileNames()
-        retStr = ""
-        retStr += "{\n"
+        retStr = "" + "{\n"
         retStr += "   \"command\": \"" + self._command + "\",\n"
         retStr += "   \"id\":\"" + self._id + "\",\n"
 
@@ -89,15 +85,13 @@ class ServerMessage:
         if fileNameCount == 0:
             return "{}\n"
         retStr = '{\n'
-        i = 0
-        for fName in self._files:
-            if i + 1 < fileNameCount:
-                retStr = retStr + "    \"name-" + str(i) + "\": \"" + fName + "\",\n"
-            else:
-                retStr = retStr + "    \"name-" + str(i) + "\": \"" + fName + "\"\n"
-            i += 1
-        retStr = retStr + "    }\n"
-        return retStr
+        for i, fName in enumerate(self._files):
+            retStr = (
+                retStr + "    \"name-" + str(i) + "\": \"" + fName + "\",\n"
+                if i + 1 < fileNameCount
+                else retStr + "    \"name-" + str(i) + "\": \"" + fName + "\"\n"
+            )
+        return retStr + "    }\n"
 
     def to_bytes(self):
         """Converts this ServerMessage instance to a JSON and then to a bytes string.
@@ -121,11 +115,7 @@ class ServerMessage:
         parsed_msg = json.loads(message.decode("utf-8"))  # Load JSON string into dictionary
         filenames = parsed_msg["files"]  # dict
         data = parsed_msg["data"]  # list
-        parsed_filenames = list()
-        if len(filenames) > 0:
-            for f in filenames:
-                parsed_filenames.append(filenames[f])
-            msg = cls(parsed_msg['command'], parsed_msg['id'], data, parsed_filenames)
-        else:
-            msg = cls(parsed_msg['command'], parsed_msg['id'], data, None)
-        return msg
+        if len(filenames) <= 0:
+            return cls(parsed_msg['command'], parsed_msg['id'], data, None)
+        parsed_filenames = [filenames[f] for f in filenames]
+        return cls(parsed_msg['command'], parsed_msg['id'], data, parsed_filenames)

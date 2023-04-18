@@ -186,9 +186,7 @@ class KernelExecutionManager(ExecutionManagerBase):
         self._kernel_client.start_channels()
         run_succeeded = self._do_run()
         self._kernel_client.stop_channels()
-        if self._cmd_failed or not run_succeeded:
-            return -1
-        return 0
+        return -1 if self._cmd_failed or not run_succeeded else 0
 
     def _do_run(self):
         try:

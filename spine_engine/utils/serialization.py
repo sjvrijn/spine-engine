@@ -50,12 +50,13 @@ def serialize_path(path, project_dir):
         dict: Dictionary representing the given path
     """
     is_relative = path_in_dir(path, project_dir)
-    serialized = {
+    return {
         "type": "path",
         "relative": is_relative,
-        "path": os.path.relpath(path, project_dir).replace(os.sep, "/") if is_relative else path.replace(os.sep, "/"),
+        "path": os.path.relpath(path, project_dir).replace(os.sep, "/")
+        if is_relative
+        else path.replace(os.sep, "/"),
     }
-    return serialized
 
 
 def serialize_url(url, project_dir):
@@ -117,7 +118,7 @@ def deserialize_path(serialized, project_dir):
             path = os.path.normpath(path)
             query = serialized.get("query", "")
             if query:
-                query = "?" + query
+                query = f"?{query}"
             return serialized["scheme"] + ":///" + path + query
         if path_type == "url":
             return serialized["path"]

@@ -48,7 +48,7 @@ class ProjectExtractorService(threading.Thread, ServiceBase):
         self.worker_socket.connect("inproc://backend")
         dir_name = self.request.data()
         file_names = self.request.filenames()
-        if not len(file_names) == 1:  # No file name included
+        if len(file_names) != 1:  # No file name included
             print("Received msg contained no file name for the ZIP file")
             self.send_completed_with_error("Project ZIP file name missing")
             return
@@ -62,7 +62,8 @@ class ProjectExtractorService(threading.Thread, ServiceBase):
             return
         # Make a new local project directory based on project name in request
         local_project_dir = os.path.join(
-            ProjectExtractorService.INTERNAL_PROJECT_DIR, dir_name + "__" + uuid.uuid4().hex
+            ProjectExtractorService.INTERNAL_PROJECT_DIR,
+            f"{dir_name}__{uuid.uuid4().hex}",
         )
         # Create project directory
         try:
@@ -83,7 +84,7 @@ class ProjectExtractorService(threading.Thread, ServiceBase):
             self.send_completed_with_error(msg)
             return
         # Check that the size of received bytes and the saved ZIP file match
-        if not len(self.request.zip_file()) == os.path.getsize(zip_path):
+        if len(self.request.zip_file()) != os.path.getsize(zip_path):
             print(
                 f"Error: Size mismatch in saving ZIP file. Received bytes:{len(self.request.zip_file())}. "
                 f"ZIP file size:{os.path.getsize(zip_path)}"

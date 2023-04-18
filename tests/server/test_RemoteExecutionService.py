@@ -123,7 +123,7 @@ class TestRemoteExecutionService(unittest.TestCase):
             file_data = f.read()
         for i in range(5):
             # Change project dir on each iteration
-            project_name = "loop_test_project_" + str(i)
+            project_name = f"loop_test_project_{str(i)}"
             prepare_msg = ServerMessage("prepare_execution", "1", json.dumps(project_name), ["helloworld.zip"])
             self.socket.send_multipart([prepare_msg.to_bytes(), file_data])
             prepare_response = self.socket.recv_multipart()
@@ -147,7 +147,7 @@ class TestRemoteExecutionService(unittest.TestCase):
         Args:
             publish_port (str): Publish socket port
         """
-        self.pull_socket.connect("tcp://localhost:" + publish_port)
+        self.pull_socket.connect(f"tcp://localhost:{publish_port}")
         while True:
             socks = dict(self.poller.poll())
             if socks.get(self.pull_socket) == zmq.POLLIN:
@@ -188,7 +188,7 @@ class TestRemoteExecutionService(unittest.TestCase):
         """Make a Data Connection item_dict.
         Keep up-to-date with spine_items.data_connection.data_connection.item_dict()."""
         d = self.make_default_item_dict("Data Connection")
-        d["file_references"] = file_ref if file_ref is not None else list()
+        d["file_references"] = file_ref if file_ref is not None else []
         d["db_references"] = []
         d["db_credentials"] = {}
         return d
@@ -238,41 +238,44 @@ class TestRemoteExecutionService(unittest.TestCase):
             "outputfiles": [],
             "cmdline_args": [],
             "includes_main_path": includes_main_path,
-            "execution_settings": exec_settings if exec_settings is not None else dict(),
+            "execution_settings": exec_settings
+            if exec_settings is not None
+            else {},
             "definition_file_path": def_file_path,
         }
 
     @staticmethod
     def make_importer_spec_dict():
-        d = dict()
-        d["name"] = "Importer 1 - units.xlsx"
-        d["item_type"] = "Importer"
-        d["mapping"] = {
-            "table_mappings": {
-                "Sheet1": [
-                    {
-                        "": {
-                            "mapping": [
-                                {"map_type": "ObjectClass", "position": 0},
-                                {"map_type": "Object", "position": 1},
-                                {"map_type": "ObjectMetadata", "position": "hidden"},
-                            ]
+        return {
+            "name": "Importer 1 - units.xlsx",
+            "item_type": "Importer",
+            "mapping": {
+                "table_mappings": {
+                    "Sheet1": [
+                        {
+                            "": {
+                                "mapping": [
+                                    {"map_type": "ObjectClass", "position": 0},
+                                    {"map_type": "Object", "position": 1},
+                                    {
+                                        "map_type": "ObjectMetadata",
+                                        "position": "hidden",
+                                    },
+                                ]
+                            }
                         }
-                    }
-                ]
+                    ]
+                },
+                "selected_tables": ["Sheet1"],
+                "table_options": {"Sheet1": {}},
+                "table_types": {"Sheet1": {"0": "string", "1": "string"}},
+                "table_default_column_type": {},
+                "table_row_types": {},
+                "source_type": "ExcelConnector",
             },
-            "selected_tables": ["Sheet1"],
-            "table_options": {"Sheet1": {}},
-            "table_types": {"Sheet1": {"0": "string", "1": "string"}},
-            "table_default_column_type": {},
-            "table_row_types": {},
-            "source_type": "ExcelConnector",
+            "description": ("",),
+            "definition_file_path": "C:\\data\\SpineToolboxData\\Projects\\Simple Importer\\Importer 1 - units.xlsx.json",
         }
-        d["description"] = ("",)
-        d[
-            "definition_file_path"
-        ] = "C:\\data\\SpineToolboxData\\Projects\\Simple Importer\\Importer 1 - units.xlsx.json"
-        return d
 
     def make_engine_data_for_helloworld_project(self):
         """Returns an engine data dictionary for SpineEngine() for the project in file helloworld.zip.
@@ -290,12 +293,9 @@ class TestRemoteExecutionService(unittest.TestCase):
             def_file_path="C:/data/temp/.spinetoolbox/specifications/Tool/simple_tool_spec.json",
             exec_settings={"env": "", "kernel_spec_name": "py38", "use_jupyter_console": False, "executable": ""},
         )
-        item_dicts = dict()
-        item_dicts["Data Connection 1"] = dc_item_dict
-        item_dicts["Simple Tool"] = tool_item_dict
-        specification_dicts = dict()
-        specification_dicts["Tool"] = [spec_dict]
-        engine_data = {
+        item_dicts = {"Data Connection 1": dc_item_dict, "Simple Tool": tool_item_dict}
+        specification_dicts = {"Tool": [spec_dict]}
+        return {
             "items": item_dicts,
             "specifications": specification_dicts,
             "connections": [
@@ -311,7 +311,6 @@ class TestRemoteExecutionService(unittest.TestCase):
             "settings": {},
             "project_dir": "C:/data/temp",
         }
-        return engine_data
 
     def make_engine_data_for_simple_importer_project(self):
         """Returns an engine data dictionary for SpineEngine() for the project in file simple_importer.zip.
@@ -323,31 +322,41 @@ class TestRemoteExecutionService(unittest.TestCase):
         importer_item_dict = self.make_importer_item_dict()
         ds_item_dict = self.make_ds_item_dict()
         importer_spec_dict = self.make_importer_spec_dict()
-        item_dicts = dict()
-        item_dicts["Raw data"] = dc_item_dict
-        item_dicts["Importer 1"] = importer_item_dict
-        item_dicts["DS1"] = ds_item_dict
-        specification_dicts = dict()
-        specification_dicts["Importer"] = [importer_spec_dict]
-        engine_data = {
+        item_dicts = {
+            "Raw data": dc_item_dict,
+            "Importer 1": importer_item_dict,
+            "DS1": ds_item_dict,
+        }
+        specification_dicts = {"Importer": [importer_spec_dict]}
+        return {
             "items": item_dicts,
             "specifications": specification_dicts,
             "connections": [
-                {"name": "from Raw data to Importer 1", "from": ["Raw data", "right"], "to": ["Importer 1", "left"]},
+                {
+                    "name": "from Raw data to Importer 1",
+                    "from": ["Raw data", "right"],
+                    "to": ["Importer 1", "left"],
+                },
                 {
                     "name": "from Importer 1 to DS1",
                     "from": ["Importer 1", "right"],
                     "to": ["DS1", "left"],
-                    "options": {"purge_before_writing": True, "purge_settings": None},
+                    "options": {
+                        "purge_before_writing": True,
+                        "purge_settings": None,
+                    },
                 },
             ],
             "jumps": [],
-            "execution_permits": {"Importer 1": True, "DS1": True, "Raw data": True},
+            "execution_permits": {
+                "Importer 1": True,
+                "DS1": True,
+                "Raw data": True,
+            },
             "items_module_name": "spine_items",
             "settings": {},
             "project_dir": "C:/data/temp",
         }
-        return engine_data
 
 
 if __name__ == "__main__":

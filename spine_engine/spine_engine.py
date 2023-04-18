@@ -124,16 +124,16 @@ class SpineEngine:
         if connections is None:
             connections = []
         self._connections = list(map(Connection.from_dict, connections))
-        self._connections_by_source = dict()
-        self._connections_by_destination = dict()
-        node_successors = {item_name: list() for item_name in self._items}
+        self._connections_by_source = {}
+        self._connections_by_destination = {}
+        node_successors = {item_name: [] for item_name in self._items}
         for connection in self._connections:
             if not connection.ready_to_execute():
                 notifications = " ".join(connection.notifications())
                 raise EngineInitFailed(f"Link {connection.name} is not ready for execution. {notifications}")
             source, destination = connection.source, connection.destination
-            self._connections_by_source.setdefault(source, list()).append(connection)
-            self._connections_by_destination.setdefault(destination, list()).append(connection)
+            self._connections_by_source.setdefault(source, []).append(connection)
+            self._connections_by_destination.setdefault(destination, []).append(connection)
             successors = node_successors.get(source)
             if successors is not None:
                 successors.append(destination)
@@ -203,24 +203,21 @@ class SpineEngine:
                 sibling_connections = [
                     x for x in self._connections_by_destination.get(conn.destination, []) if x != conn
                 ]
-                conflicting.update(
-                    {
-                        c.source: c.destination
-                        for c in sibling_connections
-                        if c.write_index < conn.write_index and c.source in descendants
-                    }
-                )
+                conflicting |= {
+                    c.source: c.destination
+                    for c in sibling_connections
+                    if c.write_index < conn.write_index and c.source in descendants
+                }
             if conflicting:
                 conflicting_by_item[item_name] = conflicting
         rows = []
         for item_name, conflicting in conflicting_by_item.items():
-            row = []
-            for other_item_name, dest in conflicting.items():
-                row.append(f"{other_item_name} but needs to wait for it to write to {dest}")
-            if row:
+            if row := [
+                f"{other_item_name} but needs to wait for it to write to {dest}"
+                for other_item_name, dest in conflicting.items()
+            ]:
                 rows.append(f"Item {item_name} cannot execute because it is a dependency for " + ", ".join(row))
-        msg = "\n".join(rows)
-        if msg:
+        if msg := "\n".join(rows):
             raise EngineInitFailed(msg)
 
     def _make_item_specifications(self, specifications, project_item_loader, items_module_name):
@@ -240,7 +237,7 @@ class SpineEngine:
             factory = specification_factories.get(item_type)
             if factory is None:
                 continue
-            item_specifications[item_type] = dict()
+            item_specifications[item_type] = {}
             for spec_dict in spec_dicts:
                 spec = factory.make_specification(spec_dict, self._settings, None)
                 item_specifications[item_type][spec.name] = spec
@@ -351,10 +348,11 @@ class SpineEngine:
             if direction != "BACKWARD":
                 return
             item_name = self._item_names[solid_name]
-            if not self._execution_permits[solid_name]:
-                item_finish_state = ItemExecutionFinishState.EXCLUDED
-            else:
-                item_finish_state = ItemExecutionFinishState.SUCCESS
+            item_finish_state = (
+                ItemExecutionFinishState.SUCCESS
+                if self._execution_permits[solid_name]
+                else ItemExecutionFinishState.EXCLUDED
+            )
             self._queue.put(
                 (
                     'exec_finished',
@@ -631,17 +629,17 @@ class SpineEngine:
         """
 
         def check_resource_affinity(filtered_forward_resources):
-            filter_ids_by_provider = dict()
+            filter_ids_by_provider = {}
             for r in filtered_forward_resources:
                 filter_ids_by_provider.setdefault(r.provider_name, set()).add(r.metadata.get("filter_id"))
             return all(len(filter_ids) == 1 for filter_ids in filter_ids_by_provider.values())
 
-        resource_filter_stacks = dict()
-        unfiltered_resource_lists = dict()
+        resource_filter_stacks = {}
+        unfiltered_resource_lists = {}
         for stack in forward_resource_stacks:
             if not stack:
                 continue
-            unfiltered = list()
+            unfiltered = []
             for resource in stack:
                 filter_stacks = self._filter_stacks(item_name, resource.provider_name, resource.label)
                 if not filter_stacks:
@@ -649,14 +647,16 @@ class SpineEngine:
                 else:
                     resource_filter_stacks[resource] = filter_stacks
             if unfiltered:
-                unfiltered_resource_lists.setdefault(stack[0].provider_name, list()).append(unfiltered)
+                unfiltered_resource_lists.setdefault(
+                    stack[0].provider_name, []
+                ).append(unfiltered)
         forward_resource_stacks_iterator = (
             self._expand_resource_stack(resource, filter_stacks)
             for resource, filter_stacks in resource_filter_stacks.items()
         )
         backward_resources = self._convert_backward_resources(item_name, backward_resources)
         for resources_or_lists in product(*unfiltered_resource_lists.values(), *forward_resource_stacks_iterator):
-            filtered_forward_resources = list()
+            filtered_forward_resources = []
             for item in resources_or_lists:
                 if isinstance(item, list):
                     filtered_forward_resources += item
@@ -725,10 +725,10 @@ class SpineEngine:
             return []
         filter_configs_list = []
         for filter_type, names in filters.items():
-            filter_configs = [filter_config(filter_type, name) for name in names]
-            if not filter_configs:
-                continue
-            filter_configs_list.append(filter_configs)
+            if filter_configs := [
+                filter_config(filter_type, name) for name in names
+            ]:
+                filter_configs_list.append(filter_configs)
         return list(product(*filter_configs_list))
 
     def _convert_backward_resources(self, item_name, resources):
@@ -745,7 +745,7 @@ class SpineEngine:
         connections = self._connections_by_source.get(item_name, [])
         resources_by_provider = {}
         for r in resources:
-            resources_by_provider.setdefault(r.provider_name, list()).append(r)
+            resources_by_provider.setdefault(r.provider_name, []).append(r)
         for c in connections:
             resources_from_destination = resources_by_provider.get(c.destination)
             if resources_from_destination is None:
@@ -772,7 +772,7 @@ class SpineEngine:
         connections = self._connections_by_destination.get(item_name, [])
         resources_by_provider = {}
         for r in resources:
-            resources_by_provider.setdefault(r.provider_name, list()).append(r)
+            resources_by_provider.setdefault(r.provider_name, []).append(r)
         for c in connections:
             resources_from_source = resources_by_provider.get(c.source)
             if resources_from_source is None:
@@ -821,13 +821,9 @@ def _make_filter_id(resource_filter_stack):
     for resource, stack in resource_filter_stack.items():
         if resource.type_ != "database":
             filter_id = resource.metadata.get("filter_id")
-            if filter_id is None:
-                continue
-            provider_filters.add(filter_id)
-        else:
-            filter_names = sorted(_filter_names_from_stack(stack))
-            if not filter_names:
-                continue
+            if filter_id is not None:
+                provider_filters.add(filter_id)
+        elif filter_names := sorted(_filter_names_from_stack(stack)):
             provider_filters.add(", ".join(filter_names) + " - " + resource.provider_name)
     return " & ".join(sorted(provider_filters))
 
